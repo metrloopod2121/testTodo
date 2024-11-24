@@ -36,7 +36,7 @@ struct ContentView: View {
                     Button(action: addItem) {
                         Label("Add Item", systemImage: "plus")
                     }
-                }
+                }  
             }
             Text("Select an item")
         }
@@ -77,6 +77,6 @@ private let itemFormatter: DateFormatter = {
     return formatter
 }()
 
-#Preview {
-    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-}
+//#Preview {
+//    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+//}

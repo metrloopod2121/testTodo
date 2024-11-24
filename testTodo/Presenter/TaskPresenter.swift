@@ -11,10 +11,10 @@ protocol TaskPresenterProtocol {
     func loadTasks()
     func addNewTask(label: String, caption: String)
     func deleteTask(withId id: UUID)
-    func toggleTaskStatus(withId id: UUID)
+    func updateTask(_ task: Task)
 }
 
-class TaskPresenter: TaskPresenterProtocol {
+class TaskPresenter: TaskPresenterProtocol, ObservableObject {
     private let interactor: TaskInteractorProtocol
     weak var view: TaskViewProtocol?
 
@@ -22,28 +22,30 @@ class TaskPresenter: TaskPresenterProtocol {
         self.interactor = interactor
     }
 
+    // Загрузка задач
     func loadTasks() {
+        view?.showLoading(true)
+
         interactor.fetchTasks { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let tasks):
-                    self?.view?.showTasks(tasks)
+                    self?.view?.showTasks(tasks) // Отправляем данные во View
                 case .failure(let error):
-                    self?.view?.showError(error.localizedDescription)
+                    self?.view?.showError(error.localizedDescription) // Отображаем ошибку
                 }
+                self?.view?.showLoading(false)
             }
         }
     }
 
+    // Добавление задачи
     func addNewTask(label: String, caption: String) {
-        let newTask = Task(label: label, caption: caption)
-        interactor.addTask(newTask) { [weak self] result in
+        interactor.addTask(label: label, caption: caption) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
-                case .success(let success):
-                    if success {
-                        self?.loadTasks()
-                    }
+                case .success:
+                    self?.loadTasks() // Обновляем список задач
                 case .failure(let error):
                     self?.view?.showError(error.localizedDescription)
                 }
@@ -51,14 +53,13 @@ class TaskPresenter: TaskPresenterProtocol {
         }
     }
 
+    // Удаление задачи
     func deleteTask(withId id: UUID) {
         interactor.deleteTask(withId: id) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
-                case .success(let success):
-                    if success {
-                        self?.loadTasks()
-                    }
+                case .success:
+                    self?.loadTasks() // Обновляем список задач
                 case .failure(let error):
                     self?.view?.showError(error.localizedDescription)
                 }
@@ -66,14 +67,13 @@ class TaskPresenter: TaskPresenterProtocol {
         }
     }
 
-    func toggleTaskStatus(withId id: UUID) {
-        interactor.toggleTaskStatus(withId: id) { [weak self] result in
+    // Обновление задачи
+    func updateTask(_ task: Task) {
+        interactor.updateTask(task) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
-                case .success(let success):
-                    if success {
-                        self?.loadTasks()
-                    }
+                case .success:
+                    self?.loadTasks() // Обновляем список задач
                 case .failure(let error):
                     self?.view?.showError(error.localizedDescription)
                 }

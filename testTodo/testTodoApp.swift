@@ -12,9 +12,18 @@ struct testTodoApp: App {
     let persistenceController = PersistenceController.shared
 
     var body: some Scene {
+        
+        // Создаем все нужные зависимости
+        let interactor = TaskInteractor()
+        let presenter = TaskPresenter(interactor: interactor)
+        let viewModel = TaskViewModel(presenter: presenter)
+//        let viewLogic = TaskViewModel(presenter: presenter)
+
         WindowGroup {
-            ContentView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+            TaskView(presenter: presenter, viewModel: viewModel) // Передаем TaskViewLogic в TaskView
+//                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+//                .foregroundColor(.white) // Белый текст по умолчанию
+                .preferredColorScheme(.dark) // Принудительная тёмная тема
         }
     }
 }
