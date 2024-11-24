@@ -60,7 +60,7 @@ struct AddTaskView: View {
                     caption = task.caption
                 }
             }
-            .navigationTitle(task != nil ? "Editing" : "Adding")
+//            .navigationTitle(task != nil ? "Изменение" : "Добавление")
     }
 }
 

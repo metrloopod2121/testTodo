@@ -16,6 +16,8 @@ struct TaskView: View {
     @State private var errorMessage: String?
     @State private var showContextMenu: Bool = false
     @State private var selectedTask: Task?
+    
+    @State private var searchText: String = "" // Для строки поиска
 
     private let presenter: TaskPresenter
     @ObservedObject private var viewModel: TaskViewModel
@@ -25,6 +27,19 @@ struct TaskView: View {
         self.viewModel = viewModel
         self.presenter.view = self.viewModel
     }
+    
+    // Вычисляемый список задач для отображения
+    var filteredTasks: [Task] {
+        if searchText.isEmpty {
+            return viewModel.tasks
+        } else {
+            return viewModel.tasks.filter {
+                $0.label.localizedCaseInsensitiveContains(searchText) ||
+                $0.caption.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+
     
     var addBar: some View {
         ZStack(alignment: .trailing) {
@@ -45,6 +60,7 @@ struct TaskView: View {
         .frame(maxWidth: .infinity, maxHeight: 60)
         .background(Color(red: 39/255, green: 39/255, blue: 41/255)) // rgba(39, 39, 41, 1)
     }
+    
 
     // Вынесенный View для элемента задачи
     func taskItem(for task: Task) -> some View {
@@ -81,7 +97,7 @@ struct TaskView: View {
         }
         .contextMenu {
             Button(action: {
-                print("edit")
+                selectedTask = task
             }) {
                 Label("Редактировать", systemImage: "pencil")
             }
@@ -107,7 +123,6 @@ struct TaskView: View {
             Image(systemName: "arrow.up.trash.fill")
                 .resizable()
                 .frame(width: 24, height: 24) // Задаём размер иконки
-                .padding(.top, 95)
                 .foregroundColor(.yellow)     // Устанавливаем цвет
         }
         .padding()
@@ -122,27 +137,30 @@ struct TaskView: View {
                     Text(errorMessage)
                         .foregroundColor(.red)
                 } else {
-                    List(viewModel.tasks) { task in
+                    List(filteredTasks) { task in
                         taskItem(for: task)
+                            .listRowInsets(EdgeInsets()) // Убираем отступы
+                            .padding(.vertical, 10)
+                            .listRowBackground(Color.clear) // Убираем фон строки
                             .onTapGesture {
                                 selectedTask = task
                             }
                     }
+                    .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
+//                    .background(Color.black) // Фон экрана
                 }
                 Spacer()
                 addBar // bar with add task and tasks count
             }
             .navigationDestination(isPresented: .constant(selectedTask != nil)) {
                 if let task = selectedTask {
-                    if let task = selectedTask {
-                        AddTaskView(presenter: presenter, selectedTask: task)
-                    } else {
-                        AddTaskView(presenter: presenter, selectedTask: nil)
-                    }
-               }
+                    AddTaskView(presenter: presenter, selectedTask: task)
+                } else {
+                    AddTaskView(presenter: presenter, selectedTask: nil)
+                }
             }
             .navigationTitle("Задачи")
-//            .navigationBarItems(trailing: deleteAllTasksButton)
+            .navigationBarItems(trailing: deleteAllTasksButton)
             .onAppear {
                 viewModel.showLoading(true)
                 presenter.loadTasks()
