@@ -9,22 +9,20 @@ import Foundation
 import SwiftUI
 
 struct AddTaskView: View {
-    
-    
 
-    @Environment(\.dismiss) var dismiss // Управление закрытием экрана
-    
     @State private var label: String = ""
     @State private var caption: String = ""
     
     private let presenter: TaskPresenter
+    var task: Task?
 
-    init(presenter: TaskPresenter) {
+    init(presenter: TaskPresenter, selectedTask: Task?) {
         self.presenter = presenter
+        self.task = selectedTask
     }
     
     var header: some View {
-        VStack {
+        VStack(alignment: .leading) {
             TextField("Название задачи", text: $label)
                 .textFieldStyle(PlainTextFieldStyle())
                 .font(.system(size: 30))
@@ -33,31 +31,38 @@ struct AddTaskView: View {
             HStack {
                 Text(Date().formattedDate())
                     .foregroundStyle(.gray)
-                    .font(.system(.caption))
+                    .font(.system(size: 16))
                 Spacer()
             }
             .padding(.leading)
             
             TextEditor(text: $caption)
-                .frame(height: 100) // Ограничиваем высоту
-                .padding()
-                .padding(.horizontal) // Добавляем отступы по бокам
+                .padding(.horizontal, 10)
 
             Spacer()
         }
         .onDisappear() {
-            presenter.addNewTask(label: label, caption: caption)
+            if var taskToUpdate = task {
+                taskToUpdate.label = label
+                taskToUpdate.caption = caption
+                presenter.updateTask(taskToUpdate)
+            } else {
+                presenter.addNewTask(label: label, caption: caption)
+            }
         }
     }
     
     var body: some View {
         header
+            .onAppear {
+                if let task = task {
+                    label = task.label
+                    caption = task.caption
+                }
+            }
+            .navigationTitle(task != nil ? "Editing" : "Adding")
     }
 }
 
 
-#Preview {
-    var interactor = TaskInteractor()
-    var presenter = TaskPresenter(interactor: interactor)
-    AddTaskView(presenter: presenter)
-}
+

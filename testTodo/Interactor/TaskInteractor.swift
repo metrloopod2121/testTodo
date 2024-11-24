@@ -23,12 +23,15 @@ protocol TaskInteractorProtocol {
     
     /// Update task
     func updateTask(_ task: Task, completion: @escaping (Result<Void, Error>) -> Void)
+    
+    /// Delete all task
+    func deleteAllTasks(completion: @escaping (Result<Void, Error>) -> Void)
 }
 
 class TaskInteractor: TaskInteractorProtocol {
     private let taskManager = TaskDataManager.shared
-    private var isInitialLoadComplete = true
-
+    private var isInitialLoadComplete = false
+    
     // MARK: - Task load
     /// - First run app loaded tasks from JSON by use fetchTasksFromAPI()
     /// - After this, all data load from Core Data
@@ -45,7 +48,7 @@ class TaskInteractor: TaskInteractorProtocol {
                         switch saveResult {
                         case .success:
                             self.isInitialLoadComplete = true
-                            self.fetchTasksFromCoreData(completion: completion) 
+                            self.fetchTasksFromCoreData(completion: completion)
                         case .failure(let error):
                             completion(.failure(error))
                         }
@@ -56,7 +59,7 @@ class TaskInteractor: TaskInteractorProtocol {
             }
         }
     }
-
+    
     // MARK: - Add Task
     func addTask(label: String, caption: String, completion: @escaping (Result<Void, Error>) -> Void) {
         taskManager.createTask(label: label, caption: caption) { result in
@@ -68,7 +71,7 @@ class TaskInteractor: TaskInteractorProtocol {
             }
         }
     }
-
+    
     // MARK: - Delete Task
     func deleteTask(withId id: UUID, completion: @escaping (Result<Void, Error>) -> Void) {
         taskManager.fetchTasks { result in
@@ -91,7 +94,7 @@ class TaskInteractor: TaskInteractorProtocol {
             }
         }
     }
-
+    
     // MARK: - Update Task
     /// - use for update anything about task
     func updateTask(_ task: Task, completion: @escaping (Result<Void, Error>) -> Void) {
@@ -115,7 +118,7 @@ class TaskInteractor: TaskInteractorProtocol {
             }
         }
     }
-
+    
     // MARK: - Load tasks from JSON
     private func fetchTasksFromAPI(completion: @escaping (Result<[Task], Error>) -> Void) {
         let urlString = "https://dummyjson.com/todos"
@@ -124,18 +127,18 @@ class TaskInteractor: TaskInteractorProtocol {
             completion(.failure(NSError(domain: "Invalid URL", code: 0, userInfo: nil)))
             return
         }
-
+        
         URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
                 completion(.failure(error))
                 return
             }
-
+            
             guard let data = data else {
                 completion(.failure(NSError(domain: "No Data", code: 0, userInfo: nil)))
                 return
             }
-
+            
             do {
                 let decoder = JSONDecoder()
                 let todoResponse = try decoder.decode(TodoResponse.self, from: data)
@@ -147,7 +150,7 @@ class TaskInteractor: TaskInteractorProtocol {
             }
         }.resume()
     }
-
+    
     // MARK: - Load data from Core Data
     private func fetchTasksFromCoreData(completion: @escaping (Result<[Task], Error>) -> Void) {
         taskManager.fetchTasks { result in
@@ -168,7 +171,7 @@ class TaskInteractor: TaskInteractorProtocol {
             }
         }
     }
-
+    
     // MARK: - save data to Core Data
     private func saveTasksToCoreData(tasks: [Task], completion: @escaping (Result<Void, Error>) -> Void) {
         for task in tasks {
@@ -181,5 +184,19 @@ class TaskInteractor: TaskInteractorProtocol {
         }
         completion(.success(()))
     }
+    
+    // MARK: - Delete all tasks
+    func deleteAllTasks(completion: @escaping (Result<Void, Error>) -> Void) {
+        taskManager.deleteAllTasks { result in
+            switch result {
+            case .success:
+                completion(.success(()))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    
 }
 

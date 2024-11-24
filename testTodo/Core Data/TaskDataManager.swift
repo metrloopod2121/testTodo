@@ -13,8 +13,23 @@ class TaskDataManager {
 
     private let context = PersistenceController.shared.container.viewContext
 
+    // MARK: - Delete all tasks
+    func deleteAllTasks(completion: @escaping (Result<Void, Error>) -> Void) {
+        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = TaskEntity.fetchRequest()
+        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+        
+        do {
+            try context.execute(deleteRequest)
+            try context.save() // Сохраняем изменения
+            completion(.success(()))
+        } catch {
+            completion(.failure(error))
+        }
+    }
+    
     // MARK: - Создание задачи
     func createTask(label: String, caption: String, completion: @escaping (Result<TaskEntity, Error>) -> Void) {
+        
         let newTask = TaskEntity(context: context)
         newTask.id = UUID()
         newTask.label = label
@@ -37,7 +52,7 @@ class TaskDataManager {
         let request: NSFetchRequest<TaskEntity> = TaskEntity.fetchRequest()
         
     /// Here you can sort tasks in list by creation date
-    // request.sortDescriptors = [NSSortDescriptor(key: "createDate", ascending: false)]
+     request.sortDescriptors = [NSSortDescriptor(key: "createDate", ascending: false)]
 
         do {
             let tasks = try context.fetch(request)
@@ -49,6 +64,7 @@ class TaskDataManager {
 
     // MARK: - Обновление задачи
     func updateTask(task: TaskEntity, newLabel: String, newCaption: String, isDone: Bool, completion: @escaping (Result<Void, Error>) -> Void) {
+        
         task.label = newLabel
         task.caption = newCaption
         task.isDone = isDone
@@ -86,5 +102,6 @@ class TaskDataManager {
             completion(.failure(error))
         }
     }
+    
 }
 

@@ -14,6 +14,8 @@ struct TaskView: View {
     @State private var tasks: [Task] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var showContextMenu: Bool = false
+    @State private var selectedTask: Task?
 
     private let presenter: TaskPresenter
     @ObservedObject private var viewModel: TaskViewModel
@@ -24,8 +26,6 @@ struct TaskView: View {
         self.presenter.view = self.viewModel
     }
     
-
-    
     var addBar: some View {
         ZStack(alignment: .trailing) {
             HStack {
@@ -34,15 +34,10 @@ struct TaskView: View {
                 Spacer()
             }
             
-            Button(action: {
-                // show add task view
-                NavigationLink(destination: AddTaskView(presenter: presenter)) {
-                    AddTaskView(presenter: presenter)
-                }
-            }) {
+            NavigationLink(destination: AddTaskView(presenter: presenter, selectedTask: nil)) {
                 Image(systemName: "square.and.pencil")
                     .resizable()
-                    .frame(width: 30, height: 30)
+                    .frame(width: 25, height: 25)
                     .foregroundColor(.yellow)
             }
             .padding(.trailing, 20)
@@ -51,9 +46,76 @@ struct TaskView: View {
         .background(Color(red: 39/255, green: 39/255, blue: 41/255)) // rgba(39, 39, 41, 1)
     }
 
+    // Вынесенный View для элемента задачи
+    func taskItem(for task: Task) -> some View {
+        HStack(alignment: .top) {
+            Image(task.isDone ? "check_mark_fill" : "check_mark")
+                .onTapGesture {
+                    presenter.updateTask(
+                        Task(
+                            id: task.id,
+                            label: task.label,
+                            caption: task.caption,
+                            isDone: !task.isDone,
+                            createDate: task.createDate
+                        )
+                    )
+                }
+            
+            VStack(alignment: .leading) {
+                Text(task.label)
+                    .font(.headline)
+                    .padding(.bottom, 2)
+                    .foregroundStyle(task.isDone ? .gray : .white)
+                    .strikethrough(task.isDone)
+                Text(task.caption)
+                    .font(.subheadline)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .foregroundStyle(task.isDone ? .gray : .white)
+                    .padding(.bottom, 5)
+                Text(task.createDate.formattedDate())
+                    .font(.caption)
+                    .foregroundStyle(.gray)
+            }
+        }
+        .contextMenu {
+            Button(action: {
+                print("edit")
+            }) {
+                Label("Редактировать", systemImage: "pencil")
+            }
+            
+            Button(action: {
+                print("shared")
+            }) {
+                Label("Поделиться", systemImage: "square.and.arrow.up")
+            }
+            
+            Button(role: .destructive, action: {
+                presenter.deleteTask(withId: task.id)
+            }) {
+                Label("Удалить", systemImage: "trash")
+            }
+        }
+    }
+
+    var deleteAllTasksButton: some View {
+        Button(action: {
+            presenter.deleteAllTasks()
+        }) {
+            Image(systemName: "arrow.up.trash.fill")
+                .resizable()
+                .frame(width: 24, height: 24) // Задаём размер иконки
+                .padding(.top, 95)
+                .foregroundColor(.yellow)     // Устанавливаем цвет
+        }
+        .padding()
+    }
+    
     var body: some View {
         NavigationStack {
-            VStack (alignment: .center){
+            VStack(alignment: .center) {
                 if viewModel.isLoading {
                     ProgressView("Загрузка задач...")
                 } else if let errorMessage = errorMessage {
@@ -61,61 +123,30 @@ struct TaskView: View {
                         .foregroundColor(.red)
                 } else {
                     List(viewModel.tasks) { task in
-                        HStack(alignment: .top) {
-                            Image(task.isDone ? "check_mark_fill" : "check_mark")
-                                .onTapGesture {
-                                    presenter.updateTask(
-                                        Task(
-                                            id: task.id,
-                                            label: task.label,
-                                            caption: task.caption,
-                                            isDone: !task.isDone,
-                                            createDate: task.createDate
-                                        )
-                                    )
-                                }
-                            
-                            VStack(alignment: .leading) {
-                                Text(task.label)
-                                    .font(.headline)
-                                    .padding(.bottom, 2)
-                                    .foregroundStyle(task.isDone == true ? .gray : .white)
-                                    .strikethrough(task.isDone == true ? true : false)
-                                Text(task.caption)
-                                    .font(.subheadline)
-                                    .multilineTextAlignment(.leading)
-                                    .lineLimit(2)
-                                    .foregroundStyle(task.isDone == true ? .gray : .white)
-                                    .padding(.bottom, 5)
-                                Text(task.createDate.formattedDate())
-                                    .font(.caption)
-                                    .foregroundStyle(.gray)
+                        taskItem(for: task)
+                            .onTapGesture {
+                                selectedTask = task
                             }
-                        }
-                        .onTapGesture {}.onLongPressGesture(minimumDuration: 0.5) {
-//                            Menu("Menu", systemImage: "ellipsis") {
-//                                Button("Edit", systemImage: "edit") {}
-//                                Button("Delete", systemImage: "trash") {}
-//                            } primaryAction: {
-//                                //
-//                            }
-                            print("Long press")
-                            // here need to add showing view, where realised options for task, like delete, edit
-                        }
                     }
                 }
                 Spacer()
-                
-                // bar with add task and tasks count
-                addBar
+                addBar // bar with add task and tasks count
+            }
+            .navigationDestination(isPresented: .constant(selectedTask != nil)) {
+                if let task = selectedTask {
+                    if let task = selectedTask {
+                        AddTaskView(presenter: presenter, selectedTask: task)
+                    } else {
+                        AddTaskView(presenter: presenter, selectedTask: nil)
+                    }
+               }
             }
             .navigationTitle("Задачи")
+//            .navigationBarItems(trailing: deleteAllTasksButton)
             .onAppear {
                 viewModel.showLoading(true)
                 presenter.loadTasks()
             }
         }
     }
-    
-    
 }

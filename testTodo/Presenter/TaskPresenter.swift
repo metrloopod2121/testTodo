@@ -21,8 +21,21 @@ class TaskPresenter: TaskPresenterProtocol, ObservableObject {
     init(interactor: TaskInteractorProtocol) {
         self.interactor = interactor
     }
+    
+    func deleteAllTasks() {
+        interactor.deleteAllTasks { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    self?.view?.showTasks([])
+                case .failure(let error):
+                    self?.view?.showError(error.localizedDescription)
+                }
+            }
+        }
+    }
 
-    // Загрузка задач
+    // MARK: Loading tasks
     func loadTasks() {
         view?.showLoading(true)
 
