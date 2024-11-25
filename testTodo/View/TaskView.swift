@@ -17,6 +17,9 @@ struct TaskView: View {
     @State private var showContextMenu: Bool = false
     @State private var selectedTask: Task?
     
+    @State private var isShareSheetPresented = false
+    @State private var shareItems: [Any] = []
+    
     @State private var searchText: String = "" // Для строки поиска
 
     private let presenter: TaskPresenter
@@ -103,7 +106,8 @@ struct TaskView: View {
             }
             
             Button(action: {
-                print("shared")
+                shareItems = [task.label, task.caption] // Данные для отправки
+                isShareSheetPresented = true
             }) {
                 Label("Поделиться", systemImage: "square.and.arrow.up")
             }
@@ -114,6 +118,9 @@ struct TaskView: View {
                 Label("Удалить", systemImage: "trash")
             }
         }
+        .sheet(isPresented: $isShareSheetPresented) {
+             ShareSheet(items: shareItems)
+         }
     }
 
     var deleteAllTasksButton: some View {
